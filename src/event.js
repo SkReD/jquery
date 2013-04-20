@@ -1,7 +1,26 @@
 var rkeyEvent = /^key/,
 	rmouseEvent = /^(?:mouse|contextmenu)|click/,
 	rfocusMorph = /^(?:focusinfocus|focusoutblur)$/,
-	rtypenamespace = /^([^.]*)(?:\.(.+)|)$/;
+	rtypenamespace = /^([^.]*)(?:\.(.+)|)$/,
+	rquickIs = /^(\w*)(?:#([\w\-]+))?(?:\.([\w\-]+))?$/,
+	quickParse = function( selector ) {
+		var quick = rquickIs.exec( selector );
+		if ( quick ) {
+			//   0  1    2   3
+			// [ _, tag, id, class ]
+			quick[1] = ( quick[1] || "" ).toLowerCase();
+			quick[3] = quick[3] && new RegExp( "(?:^|\\s)" + quick[3] + "(?:\\s|$)" );
+		}
+		return quick;
+	},
+	quickIs = function( elem, m ) {
+		var attrs = elem.attributes || {};
+		return (
+			(!m[1] || elem.nodeName.toLowerCase() === m[1]) &&
+				(!m[2] || (attrs.id || {}).value === m[2]) &&
+				(!m[3] || m[3].test( (attrs[ "class" ] || {}).value ))
+			);
+	};	
 
 function returnTrue() {
 	return true;
@@ -88,6 +107,7 @@ jQuery.event = {
 				data: data,
 				handler: handler,
 				guid: handler.guid,
+				quick: selector && quickParse( selector ),
 				selector: selector,
 				needsContext: selector && jQuery.expr.match.needsContext.test( selector ),
 				namespace: namespaces.join(".")
@@ -416,7 +436,7 @@ jQuery.event = {
 						if ( matches[ sel ] === undefined ) {
 							matches[ sel ] = handleObj.needsContext ?
 								jQuery( sel, this ).index( cur ) >= 0 :
-								jQuery.find( sel, this, null, [ cur ] ).length;
+								(handleObj.quick ? quickIs(cur, handleObj.quick) : jQuery.find( sel, this, null, [ cur ] ).length);
 						}
 						if ( matches[ sel ] ) {
 							matches.push( handleObj );
